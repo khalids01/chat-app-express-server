@@ -17,9 +17,9 @@ const EVENTS = {
 };
 
 const rooms: Record<string, { name: string }> = {};
-const messages: Record<
+let messages: Record<
   string,
-  { message: string; username: string; time: string }
+  { message: string; username: string; time: string }[]
 > = {};
 
 function socket({ io }: { io: Server }) {
@@ -59,14 +59,28 @@ function socket({ io }: { io: Server }) {
       EVENTS.CLIENT.SEND_ROOM_MESSAGE,
       ({ roomId, message, username }) => {
         const date = new Date();
-
-        messages[roomId] = {
-          message,
-          username,
-          time: `${date.getHours()}:${date.getMinutes()}`,
-        };
-
-        console.log(messages)
+        
+        if (Object.keys(messages) && messages[roomId]) {
+          messages[roomId].push({
+            message,
+            username,
+            time: `${date.getHours()}:${date.getMinutes()}`,
+          });
+        } else {
+          const m: Record<
+            string,
+            { message: string; username: string; time: string }[]
+          > = {
+            [roomId]: [
+              {
+                username,
+                message,
+                time: `${date.getHours()}:${date.getMinutes()}`,
+              },
+            ],
+          };
+          messages = m
+        }
 
         socket.to(roomId).emit(EVENTS.SERVER.ROOM_MESSAGE, messages[roomId]);
       }
